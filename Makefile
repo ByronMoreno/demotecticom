@@ -1,4 +1,4 @@
-# Variables
+# Variables mas
 IMAGE_NAME=ghcr.io/byronmoreno/practica
 TAG=latest
 
