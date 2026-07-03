@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   practica:
-    image: ghcr.io/byronmoreno/practica:latest
+    image: ghcr.io/byronmoreno/practica1:latest
     networks:
       - traefik-public
       - db-network
