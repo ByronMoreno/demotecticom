@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  practica:
+  demolive:
     image: ghcr.io/byronmoreno/practica1:latest
     networks:
       - traefik-public
@@ -24,16 +24,16 @@ services:
         window: 120s
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.practica.entrypoints=http"
-        - "traefik.http.routers.practica.rule=Host(`demolive.byronrm.com`)"
-        - "traefik.http.middlewares.practica-https-redirect.redirectscheme.scheme=https"
-        - "traefik.http.routers.practica.middlewares=practica-https-redirect"
-        - "traefik.http.routers.practica-secure.entrypoints=https"
-        - "traefik.http.routers.practica-secure.rule=Host(`demolive.byronrm.com`)"
-        - "traefik.http.routers.practica-secure.tls=true"
-        - "traefik.http.routers.practica-secure.tls.certresolver=http"
-        - "traefik.http.routers.practica-secure.service=practica"
-        - "traefik.http.services.practica.loadbalancer.server.port=5000"
+        - "traefik.http.routers.demolive.entrypoints=http"
+        - "traefik.http.routers.demolive.rule=Host(`demolive.byronrm.com`)"
+        - "traefik.http.middlewares.demolive-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.demolive.middlewares=demolive-https-redirect"
+        - "traefik.http.routers.demolive-secure.entrypoints=https"
+        - "traefik.http.routers.demolive-secure.rule=Host(`demolive.byronrm.com`)"
+        - "traefik.http.routers.demolive-secure.tls=true"
+        - "traefik.http.routers.demolive-secure.tls.certresolver=http"
+        - "traefik.http.routers.demolive-secure.service=demolive"
+        - "traefik.http.services.demolive.loadbalancer.server.port=5000"
         - "traefik.docker.network=traefik-public"
 
   db:
