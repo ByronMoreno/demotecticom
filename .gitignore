@@ -28,3 +28,4 @@ wheels/
 Thumbs.db
 instance/
 demo.db
+upload-secrets.ps1
