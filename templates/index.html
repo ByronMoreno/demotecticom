@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - BiblioSwarm{% endblock %}
+
+{% block content %}
+<div class="row animate-slide-up">
+    <!-- Header -->
+    <div class="col-12 mb-4">
+        <h1 class="fw-bold mb-1 text-white">Panel de Control</h1>
+        <p class="text-secondary">Información y métricas en tiempo real de la biblioteca.</p>
+    </div>
+
+    <!-- Metric Cards -->
+    <div class="col-xl-3 col-sm-6 mb-4">
+        <div class="glass-card card-interactive h-100">
+            <div class="info-card-icon icon-blue">
+                <i class="bi bi-book"></i>
+            </div>
+            <h6 class="text-secondary fw-semibold mb-1">Títulos Registrados</h6>
+            <h2 class="fw-bold mb-0 text-white">{{ total_titulos }}</h2>
+            <small class="text-secondary mt-2 d-block">Libros individuales</small>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6 mb-4">
+        <div class="glass-card card-interactive h-100">
+            <div class="info-card-icon icon-green">
+                <i class="bi bi-stack"></i>
+            </div>
+            <h6 class="text-secondary fw-semibold mb-1">Inventario Total</h6>
+            <h2 class="fw-bold mb-0 text-white">{{ total_inventario }}</h2>
+            <small class="text-secondary mt-2 d-block">Total de ejemplares físicos</small>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6 mb-4">
+        <div class="glass-card card-interactive h-100">
+            <div class="info-card-icon icon-pink">
+                <i class="bi bi-people"></i>
+            </div>
+            <h6 class="text-secondary fw-semibold mb-1">Estudiantes Activos</h6>
+            <h2 class="fw-bold mb-0 text-white">{{ total_estudiantes }}</h2>
+            <small class="text-secondary mt-2 d-block">Lectores registrados</small>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-sm-6 mb-4">
+        <div class="glass-card card-interactive h-100">
+            <div class="info-card-icon icon-amber">
+                <i class="bi bi-arrow-left-right"></i>
+            </div>
+            <h6 class="text-secondary fw-semibold mb-1">Préstamos Activos</h6>
+            <h2 class="fw-bold mb-0 text-white">{{ total_prestados }}</h2>
+            <small class="text-secondary mt-2 d-block">En posesión de estudiantes</small>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2 animate-slide-up" style="animation-delay: 0.1s;">
+    <!-- Recent Loans -->
+    <div class="col-lg-8 mb-4">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold text-white mb-0">Préstamos Recientes</h5>
+                <a href="{{ url_for('web.prestamos') }}" class="btn btn-secondary-premium btn-action-sm py-1 px-3 text-decoration-none">
+                    Ver todos
+                </a>
+            </div>
+            
+            <div class="table-responsive-custom">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Libro</th>
+                            <th>Estudiante</th>
+                            <th>Fecha Préstamo</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if prestamos_recientes %}
+                            {% for prestamo in prestamos_recientes %}
+                            <tr>
+                                <td class="fw-semibold text-white">{{ prestamo.libro.titulo }}</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="text-white">{{ prestamo.estudiante.nombre }}</span>
+                                        <small class="text-secondary">{{ prestamo.estudiante.codigo }}</small>
+                                    </div>
+                                </td>
+                                <td>{{ prestamo.fecha_prestamo.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if prestamo.estado == 'prestado' %}
+                                        <span class="badge-custom badge-warning-premium">
+                                            <i class="bi bi-clock-history me-1"></i> Prestado
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-custom badge-success-premium">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Devuelto
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-secondary">
+                                    <i class="bi bi-inbox fs-2 mb-2 d-block"></i> No hay préstamos registrados aún.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Infrastructure Status / Swarm Demo Info -->
+    <div class="col-lg-4 mb-4">
+        <div class="glass-card h-100">
+            <h5 class="fw-bold text-white mb-3">Infraestructura Swarm</h5>
+            <p class="text-secondary mb-4 small">
+                Este panel se ejecuta en alta disponibilidad bajo un clúster <strong>Docker Swarm</strong> con balanceo de carga nativo y enrutamiento seguro mediante <strong>Traefik Proxy</strong>.
+            </p>
+            
+            <div class="d-flex flex-column gap-3 mb-4">
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-hdd-network text-indigo fs-5"></i>
+                        <span class="small fw-semibold text-white">Servidor / Host</span>
+                    </div>
+                    <span class="badge bg-secondary text-white font-monospace">{{ hostname }}</span>
+                </div>
+                
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-shield-check text-success fs-5"></i>
+                        <span class="small fw-semibold text-white">Certificado SSL</span>
+                    </div>
+                    <span class="badge bg-success text-white">Let's Encrypt (OK)</span>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color);">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-database-fill-check text-indigo fs-5"></i>
+                        <span class="small fw-semibold text-white">Base de Datos</span>
+                    </div>
+                    <span class="badge bg-info text-dark">PostgreSQL 16</span>
+                </div>
+            </div>
+
+            <div class="alert border-0 text-white rounded-3 p-3 text-center" style="background: var(--primary-gradient);">
+                <i class="bi bi-lightning-charge-fill me-1"></i> CI/CD Activo mediante GitHub Actions
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

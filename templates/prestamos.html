@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrar Préstamos - BiblioSwarm{% endblock %}
+
+{% block content %}
+<div class="row animate-slide-up">
+    <!-- Header -->
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 text-white">Préstamos y Devoluciones</h1>
+            <p class="text-secondary">Registra nuevas entregas de libros y procesa las devoluciones.</p>
+        </div>
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addPrestamoModal">
+            <i class="bi bi-arrow-left-right"></i> Registrar Préstamo
+        </button>
+    </div>
+
+    <!-- Loans Table -->
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="table-responsive-custom">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Libro</th>
+                            <th>Estudiante</th>
+                            <th>Fecha Préstamo</th>
+                            <th>Fecha Devolución</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="prestamosTableBody">
+                        {% if prestamos %}
+                            {% for prestamo in prestamos %}
+                            <tr id="prestamo-row-{{ prestamo.id }}">
+                                <td class="fw-semibold text-white">{{ prestamo.libro.titulo }}</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="text-white">{{ prestamo.estudiante.nombre }}</span>
+                                        <small class="text-secondary font-monospace">{{ prestamo.estudiante.codigo }}</small>
+                                    </div>
+                                </td>
+                                <td>{{ prestamo.fecha_prestamo.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    {% if prestamo.fecha_devolucion %}
+                                        {{ prestamo.fecha_devolucion.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                        <span class="text-secondary">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prestamo.estado == 'prestado' %}
+                                        <span class="badge-custom badge-warning-premium">
+                                            <i class="bi bi-clock-history me-1"></i> Prestado
+                                        </span>
+                                    {% else %}
+                                        <span class="badge-custom badge-success-premium">
+                                            <i class="bi bi-check-circle-fill me-1"></i> Devuelto
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if prestamo.estado == 'prestado' %}
+                                        <button class="btn btn-premium btn-action-sm btn-success" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2); border: none;" onclick="devolverLibro({{ prestamo.id }})">
+                                            <i class="bi bi-arrow-return-left"></i> Devolver
+                                        </button>
+                                    {% else %}
+                                        <button class="btn btn-secondary-premium btn-action-sm" disabled>
+                                            <i class="bi bi-check-lg"></i> Finalizado
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="noPrestamosRow">
+                                <td colspan="6" class="text-center py-4 text-secondary">
+                                    <i class="bi bi-arrow-left-right fs-2 mb-2 d-block"></i> No hay registros de préstamos de libros.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Prestamo Modal -->
+<div class="modal fade modal-custom" id="addPrestamoModal" tabindex="-1" aria-labelledby="addPrestamoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addPrestamoModalLabel"><i class="bi bi-arrow-left-right text-indigo me-2"></i>Registrar Nuevo Préstamo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addPrestamoForm" onsubmit="submitAddPrestamo(event)">
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label for="libro_id" class="form-label text-secondary fw-semibold">Seleccionar Libro</label>
+                        <select class="form-select input-premium" id="libro_id" required>
+                            <option value="" disabled selected hidden>Selecciona un libro disponible...</option>
+                            {% for libro in libros %}
+                                <option value="{{ libro.id }}">{{ libro.titulo }} (Disponibles: {{ libro.disponibles }})</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-secondary d-block mt-1">Solo se muestran los libros con stock disponible.</small>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="estudiante_id" class="form-label text-secondary fw-semibold">Seleccionar Estudiante</label>
+                        <select class="form-select input-premium" id="estudiante_id" required>
+                            <option value="" disabled selected hidden>Selecciona un estudiante...</option>
+                            {% for estudiante in estudiantes %}
+                                <option value="{{ estudiante.id }}">{{ estudiante.nombre }} ({{ estudiante.codigo }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium">Confirmar Préstamo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // AJAX: Add Loan
+    async function submitAddPrestamo(event) {
+        event.preventDefault();
+        
+        const data = {
+            libro_id: parseInt(document.getElementById('libro_id').value),
+            estudiante_id: parseInt(document.getElementById('estudiante_id').value)
+        };
+
+        try {
+            const result = await apiRequest('/api/prestamos', 'POST', data);
+            
+            const modalEl = document.getElementById('addPrestamoModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            document.getElementById('addPrestamoForm').reset();
+            
+            showNotification(result.message || 'Préstamo registrado exitosamente.');
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+
+    // AJAX: Return book
+    async function devolverLibro(id) {
+        if (!confirm('¿Confirmar la devolución física del libro de este préstamo?')) {
+            return;
+        }
+
+        try {
+            const result = await apiRequest(`/api/prestamos/${id}/devolver`, 'POST');
+            showNotification(result.message || 'El libro ha sido devuelto y el stock actualizado.');
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+</script>
+{% endblock %}

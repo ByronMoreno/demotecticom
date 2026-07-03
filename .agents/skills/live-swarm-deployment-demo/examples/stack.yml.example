@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  practica:
+    image: ghcr.io/byronmoreno/practica:latest
+    networks:
+      - traefik-public
+      - db-network
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.practica.entrypoints=http"
+        - "traefik.http.routers.practica.rule=Host(`practica.byronrm.com`)"
+        - "traefik.http.middlewares.practica-https-redirect.redirectscheme.scheme=https"
+        - "traefik.http.routers.practica.middlewares=practica-https-redirect"
+        - "traefik.http.routers.practica-secure.entrypoints=https"
+        - "traefik.http.routers.practica-secure.rule=Host(`practica.byronrm.com`)"
+        - "traefik.http.routers.practica-secure.tls=true"
+        - "traefik.http.routers.practica-secure.tls.certresolver=http"
+        - "traefik.http.routers.practica-secure.service=practica"
+        - "traefik.http.services.practica.loadbalancer.server.port=5000"
+        - "traefik.docker.network=traefik-public"
+
+  db:
+    image: postgres:16-alpine
+    networks:
+      - db-network
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  pgdata:
+
+networks:
+  traefik-public:
+    external: true
+  db-network:
+    driver: overlay
+    attachable: true

@@ -1,0 +1,99 @@
+import os
+import socket
+from flask import Flask, render_template_string
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+class Visit(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    count = db.Column(db.Integer, default=0)
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Configuración de base de datos
+    database_url = os.getenv("DATABASE_URL", "sqlite:///demo.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-key-12345")
+    
+    db.init_app(app)
+    
+    @app.route("/")
+    def index():
+        hostname = socket.gethostname()
+        db_status = "Desconectado"
+        visit_count = 0
+        
+        try:
+            # Incrementar contador de visitas en la base de datos
+            db.session.rollback()
+            visit = Visit.query.first()
+            if not visit:
+                visit = Visit(count=1)
+                db.session.add(visit)
+            else:
+                visit.count += 1
+            db.session.commit()
+            visit_count = visit.count
+            db_status = f"Conectado exitosamente ({db.engine.name})"
+        except Exception as e:
+            db_status = f"Error de conexión: {str(e)}"
+            
+        template = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Demo Swarm + Flask</title>
+            <style>
+                body {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    background: #121212;
+                    color: #e0e0e0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                    margin: 0;
+                }
+                .container {
+                    background: #1e1e1e;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                    border: 1px solid #333;
+                    max-width: 500px;
+                    width: 100%;
+                    text-align: center;
+                }
+                h1 { color: #00adb5; margin-bottom: 20px; }
+                .metric { margin: 15px 0; font-size: 1.1em; }
+                .value { font-weight: bold; color: #eee; }
+                .status-ok { color: #393e46; background: #00adb5; padding: 4px 8px; border-radius: 4px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🚀 ¡Flask en Docker Swarm funciona!</h1>
+                <div class="metric">ID del Contenedor (Hostname): <span class="value">{{ hostname }}</span></div>
+                <div class="metric">Estado BD: <span class="value">{{ db_status }}</span></div>
+                <div class="metric">Contador de Visitas: <span class="value status-ok">{{ visit_count }}</span></div>
+            </div>
+        </body>
+        </html>
+        """
+        return render_template_string(template, hostname=hostname, db_status=db_status, visit_count=visit_count)
+
+    with app.app_context():
+        try:
+            db.create_all()
+        except Exception:
+            pass
+
+    return app
+
+app = create_app()
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)

@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrar Libros - BiblioSwarm{% endblock %}
+
+{% block content %}
+<div class="row animate-slide-up">
+    <!-- Header -->
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 text-white">Catálogo de Libros</h1>
+            <p class="text-secondary">Administra los títulos y la disponibilidad de stock en el inventario.</p>
+        </div>
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addLibroModal">
+            <i class="bi bi-plus-circle"></i> Nuevo Libro
+        </button>
+    </div>
+
+    <!-- Books Table -->
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="table-responsive-custom">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Autor</th>
+                            <th>ISBN</th>
+                            <th class="text-center">Ejemplares</th>
+                            <th class="text-center">Disponibles</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="librosTableBody">
+                        {% if libros %}
+                            {% for libro in libros %}
+                            <tr id="libro-row-{{ libro.id }}">
+                                <td class="fw-semibold text-white">{{ libro.titulo }}</td>
+                                <td>{{ libro.autor }}</td>
+                                <td class="font-monospace">{{ libro.isbn }}</td>
+                                <td class="text-center">{{ libro.cantidad }}</td>
+                                <td class="text-center">
+                                    {% if libro.disponibles > 0 %}
+                                        <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1">{{ libro.disponibles }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-2 py-1">Agotado</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-secondary-premium btn-action-sm" onclick="openEditModal({{ libro.id }}, '{{ libro.titulo|escape }}', '{{ libro.autor|escape }}', '{{ libro.isbn }}', {{ libro.cantidad }})">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-danger-premium btn-action-sm" onclick="deleteLibro({{ libro.id }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="noLibrosRow">
+                                <td colspan="6" class="text-center py-4 text-secondary">
+                                    <i class="bi bi-book fs-2 mb-2 d-block"></i> No hay libros registrados en el catálogo.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Libro Modal -->
+<div class="modal fade modal-custom" id="addLibroModal" tabindex="-1" aria-labelledby="addLibroModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addLibroModalLabel"><i class="bi bi-plus-circle-fill text-indigo me-2"></i>Registrar Libro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addLibroForm" onsubmit="submitAddLibro(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="titulo" class="form-label text-secondary fw-semibold">Título</label>
+                        <input type="text" class="form-control input-premium" id="titulo" placeholder="Ej. Clean Code" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="autor" class="form-label text-secondary fw-semibold">Autor</label>
+                        <input type="text" class="form-control input-premium" id="autor" placeholder="Ej. Robert C. Martin" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="isbn" class="form-label text-secondary fw-semibold">ISBN</label>
+                        <input type="text" class="form-control input-premium" id="isbn" placeholder="Ej. 978-0132350884" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cantidad" class="form-label text-secondary fw-semibold">Cantidad Total de Ejemplares</label>
+                        <input type="number" class="form-control input-premium" id="cantidad" min="1" value="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium">Guardar Libro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Libro Modal -->
+<div class="modal fade modal-custom" id="editLibroModal" tabindex="-1" aria-labelledby="editLibroModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editLibroModalLabel"><i class="bi bi-pencil-square text-indigo me-2"></i>Editar Libro</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editLibroForm" onsubmit="submitEditLibro(event)">
+                <input type="hidden" id="editLibroId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editTitulo" class="form-label text-secondary fw-semibold">Título</label>
+                        <input type="text" class="form-control input-premium" id="editTitulo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAutor" class="form-label text-secondary fw-semibold">Autor</label>
+                        <input type="text" class="form-control input-premium" id="editAutor" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editIsbn" class="form-label text-secondary fw-semibold">ISBN</label>
+                        <input type="text" class="form-control input-premium" id="editIsbn" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCantidad" class="form-label text-secondary fw-semibold">Cantidad Total de Ejemplares</label>
+                        <input type="number" class="form-control input-premium" id="editCantidad" min="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium">Actualizar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // AJAX: Add Book
+    async function submitAddLibro(event) {
+        event.preventDefault();
+        
+        const data = {
+            titulo: document.getElementById('titulo').value.trim(),
+            autor: document.getElementById('autor').value.trim(),
+            isbn: document.getElementById('isbn').value.trim(),
+            cantidad: parseInt(document.getElementById('cantidad').value)
+        };
+
+        try {
+            const result = await apiRequest('/api/libros', 'POST', data);
+            
+            // Cerrar modal
+            const modalEl = document.getElementById('addLibroModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            // Limpiar formulario
+            document.getElementById('addLibroForm').reset();
+            
+            showNotification(result.message || 'Libro guardado exitosamente.');
+            
+            // Recargar página después de un breve delay
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+
+    // Modal: Load edit data
+    function openEditModal(id, titulo, autor, isbn, cantidad) {
+        document.getElementById('editLibroId').value = id;
+        document.getElementById('editTitulo').value = titulo;
+        document.getElementById('editAutor').value = autor;
+        document.getElementById('editIsbn').value = isbn;
+        document.getElementById('editCantidad').value = cantidad;
+        
+        const editModal = new bootstrap.Modal(document.getElementById('editLibroModal'));
+        editModal.show();
+    }
+
+    // AJAX: Edit Book
+    async function submitEditLibro(event) {
+        event.preventDefault();
+        
+        const id = document.getElementById('editLibroId').value;
+        const data = {
+            titulo: document.getElementById('editTitulo').value.trim(),
+            autor: document.getElementById('editAutor').value.trim(),
+            isbn: document.getElementById('editIsbn').value.trim(),
+            cantidad: parseInt(document.getElementById('editCantidad').value)
+        };
+
+        try {
+            const result = await apiRequest(`/api/libros/${id}`, 'PUT', data);
+            
+            const modalEl = document.getElementById('editLibroModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            showNotification(result.message || 'Libro actualizado exitosamente.');
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+
+    // AJAX: Delete Book
+    async function deleteLibro(id) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este libro? Esto también eliminará su historial de préstamos devueltos.')) {
+            return;
+        }
+
+        try {
+            const result = await apiRequest(`/api/libros/${id}`, 'DELETE');
+            showNotification(result.message || 'Libro eliminado exitosamente.');
+            
+            // Remover fila
+            const row = document.getElementById(`libro-row-${id}`);
+            if (row) {
+                row.remove();
+            }
+            
+            // Validar si el cuerpo de la tabla quedó vacío
+            const tbody = document.getElementById('librosTableBody');
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="noLibrosRow">
+                        <td colspan="6" class="text-center py-4 text-secondary">
+                            <i class="bi bi-book fs-2 mb-2 d-block"></i> No hay libros registrados en el catálogo.
+                        </td>
+                    </tr>
+                `;
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+</script>
+{% endblock %}

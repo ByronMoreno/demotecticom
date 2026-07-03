@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Administrar Estudiantes - BiblioSwarm{% endblock %}
+
+{% block content %}
+<div class="row animate-slide-up">
+    <!-- Header -->
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1 text-white">Estudiantes Registrados</h1>
+            <p class="text-secondary">Administra los lectores y usuarios autorizados para préstamos.</p>
+        </div>
+        <button class="btn btn-premium" data-bs-toggle="modal" data-bs-target="#addEstudianteModal">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Estudiante
+        </button>
+    </div>
+
+    <!-- Students Table -->
+    <div class="col-12">
+        <div class="glass-card">
+            <div class="table-responsive-custom">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Nombre Completo</th>
+                            <th>Código/Matrícula</th>
+                            <th>Correo Electrónico</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="estudiantesTableBody">
+                        {% if estudiantes %}
+                            {% for estudiante in estudiantes %}
+                            <tr id="estudiante-row-{{ estudiante.id }}">
+                                <td class="fw-semibold text-white">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center bg-indigo text-white fw-bold" style="width: 36px; height: 36px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3);">
+                                            {{ estudiante.nombre[0]|upper }}
+                                        </div>
+                                        <span>{{ estudiante.nombre }}</span>
+                                    </div>
+                                </td>
+                                <td class="font-monospace text-indigo">{{ estudiante.codigo }}</td>
+                                <td>{{ estudiante.email }}</td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex gap-2">
+                                        <button class="btn btn-secondary-premium btn-action-sm" onclick="openEditModal({{ estudiante.id }}, '{{ estudiante.nombre|escape }}', '{{ estudiante.email|escape }}', '{{ estudiante.codigo }}')">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <button class="btn btn-danger-premium btn-action-sm" onclick="deleteEstudiante({{ estudiante.id }})">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr id="noEstudiantesRow">
+                                <td colspan="4" class="text-center py-4 text-secondary">
+                                    <i class="bi bi-people fs-2 mb-2 d-block"></i> No hay estudiantes registrados.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Estudiante Modal -->
+<div class="modal fade modal-custom" id="addEstudianteModal" tabindex="-1" aria-labelledby="addEstudianteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEstudianteModalLabel"><i class="bi bi-person-plus-fill text-indigo me-2"></i>Registrar Estudiante</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addEstudianteForm" onsubmit="submitAddEstudiante(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label text-secondary fw-semibold">Nombre Completo</label>
+                        <input type="text" class="form-control input-premium" id="nombre" placeholder="Ej. Carlos Pérez" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="codigo" class="form-label text-secondary fw-semibold">Matrícula / Código Único</label>
+                        <input type="text" class="form-control input-premium" id="codigo" placeholder="Ej. EST-87612" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label text-secondary fw-semibold">Correo Electrónico</label>
+                        <input type="email" class="form-control input-premium" id="email" placeholder="Ej. carlos.perez@email.com" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium">Registrar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Estudiante Modal -->
+<div class="modal fade modal-custom" id="editEstudianteModal" tabindex="-1" aria-labelledby="editEstudianteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editEstudianteModalLabel"><i class="bi bi-pencil-square text-indigo me-2"></i>Editar Estudiante</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editEstudianteForm" onsubmit="submitEditEstudiante(event)">
+                <input type="hidden" id="editEstudianteId">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editNombre" class="form-label text-secondary fw-semibold">Nombre Completo</label>
+                        <input type="text" class="form-control input-premium" id="editNombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCodigo" class="form-label text-secondary fw-semibold">Matrícula / Código Único</label>
+                        <input type="text" class="form-control input-premium" id="editCodigo" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label text-secondary fw-semibold">Correo Electrónico</label>
+                        <input type="email" class="form-control input-premium" id="editEmail" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary-premium" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-premium">Actualizar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // AJAX: Add Student
+    async function submitAddEstudiante(event) {
+        event.preventDefault();
+        
+        const data = {
+            nombre: document.getElementById('nombre').value.trim(),
+            codigo: document.getElementById('codigo').value.trim(),
+            email: document.getElementById('email').value.trim()
+        };
+
+        try {
+            const result = await apiRequest('/api/estudiantes', 'POST', data);
+            
+            const modalEl = document.getElementById('addEstudianteModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            document.getElementById('addEstudianteForm').reset();
+            
+            showNotification(result.message || 'Estudiante registrado con éxito.');
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+
+    // Modal: Open & load student data
+    function openEditModal(id, nombre, email, codigo) {
+        document.getElementById('editEstudianteId').value = id;
+        document.getElementById('editNombre').value = nombre;
+        document.getElementById('editEmail').value = email;
+        document.getElementById('editCodigo').value = codigo;
+        
+        const editModal = new bootstrap.Modal(document.getElementById('editEstudianteModal'));
+        editModal.show();
+    }
+
+    // AJAX: Edit Student
+    async function submitEditEstudiante(event) {
+        event.preventDefault();
+        
+        const id = document.getElementById('editEstudianteId').value;
+        const data = {
+            nombre: document.getElementById('editNombre').value.trim(),
+            codigo: document.getElementById('editCodigo').value.trim(),
+            email: document.getElementById('editEmail').value.trim()
+        };
+
+        try {
+            const result = await apiRequest(`/api/estudiantes/${id}`, 'PUT', data);
+            
+            const modalEl = document.getElementById('editEstudianteModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal.hide();
+            
+            showNotification(result.message || 'Datos de estudiante actualizados.');
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+
+    // AJAX: Delete Student
+    async function deleteEstudiante(id) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este estudiante? Esto también eliminará su historial de préstamos devueltos.')) {
+            return;
+        }
+
+        try {
+            const result = await apiRequest(`/api/estudiantes/${id}`, 'DELETE');
+            showNotification(result.message || 'Estudiante eliminado con éxito.');
+            
+            const row = document.getElementById(`estudiante-row-${id}`);
+            if (row) {
+                row.remove();
+            }
+            
+            const tbody = document.getElementById('estudiantesTableBody');
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="noEstudiantesRow">
+                        <td colspan="4" class="text-center py-4 text-secondary">
+                            <i class="bi bi-people fs-2 mb-2 d-block"></i> No hay estudiantes registrados.
+                        </td>
+                    </tr>
+                `;
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
+</script>
+{% endblock %}

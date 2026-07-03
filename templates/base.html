@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BiblioSwarm - Gestión de Biblioteca{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Custom Elegant Theme CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Toggle Button for Mobile -->
+    <div class="p-3 d-flex justify-content-between align-items-center d-lg-none bg-dark border-bottom border-secondary border-opacity-25 sticky-top">
+        <span class="fs-4 fw-bold text-white"><i class="bi bi-journal-bookmark-fill text-indigo"></i> BiblioSwarm</span>
+        <button class="navbar-toggler-custom" type="button" onclick="toggleSidebar()">
+            <i class="bi bi-list fs-3"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar Panel -->
+    <div class="sidebar-panel" id="sidebarPanel">
+        <div class="sidebar-logo">
+            <i class="bi bi-journal-bookmark-fill"></i>
+            <span>BiblioSwarm</span>
+        </div>
+        
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="{{ url_for('web.index') }}" class="nav-link-custom {% if request.path == '/' %}active{% endif %}">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('web.libros') }}" class="nav-link-custom {% if request.path == '/libros' %}active{% endif %}">
+                    <i class="bi bi-book-fill"></i>
+                    <span>Libros</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('web.estudiantes') }}" class="nav-link-custom {% if request.path == '/estudiantes' %}active{% endif %}">
+                    <i class="bi bi-people-fill"></i>
+                    <span>Estudiantes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('web.prestamos') }}" class="nav-link-custom {% if request.path == '/prestamos' %}active{% endif %}">
+                    <i class="bi bi-arrow-left-right"></i>
+                    <span>Préstamos</span>
+                </a>
+            </li>
+        </ul>
+        
+        <div class="mt-auto pt-4 border-top border-secondary border-opacity-25 position-absolute bottom-0 start-0 w-100 p-4" style="box-sizing: border-box;">
+            <div class="d-flex align-items-center gap-2 text-secondary">
+                <i class="bi bi-cpu-fill"></i>
+                <small class="text-truncate">Nodo: {{ hostname if hostname else 'Swarm-Node' }}</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content" onclick="closeSidebarMobile()">
+        <div class="container-fluid p-0">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="appToast" class="toast toast-custom align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2">
+                    <i id="toastIcon" class="bi bi-info-circle-fill"></i>
+                    <span id="toastMessage">Mensaje informativo</span>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Global Application Scripts -->
+    <script>
+        // Sidebar Toggles
+        function toggleSidebar() {
+            document.getElementById('sidebarPanel').classList.toggle('show');
+        }
+        function closeSidebarMobile() {
+            const sidebar = document.getElementById('sidebarPanel');
+            if (sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
+        }
+
+        // Show Toast Notification
+        function showNotification(message, type = 'success') {
+            const toastEl = document.getElementById('appToast');
+            const toastMsg = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+            
+            toastMsg.textContent = message;
+            
+            // Set styles based on notification type
+            toastEl.classList.remove('border-success', 'border-danger', 'border-warning');
+            toastIcon.className = 'bi ';
+            
+            if (type === 'success') {
+                toastEl.style.borderLeft = '4px solid #10b981';
+                toastIcon.classList.add('bi-check-circle-fill', 'text-success');
+            } else if (type === 'error') {
+                toastEl.style.borderLeft = '4px solid #ec4899';
+                toastIcon.classList.add('bi-exclamation-triangle-fill', 'text-danger');
+            } else {
+                toastEl.style.borderLeft = '4px solid #f59e0b';
+                toastIcon.classList.add('bi-info-circle-fill', 'text-warning');
+            }
+            
+            const toast = new bootstrap.Toast(toastEl);
+            toast.show();
+        }
+
+        // AJAX Request Helper
+        async function apiRequest(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            if (data && (method === 'POST' || method === 'PUT')) {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                const result = await response.json();
+                
+                if (!response.ok || result.status === 'error') {
+                    throw new Error(result.message || `Error del servidor (${response.status})`);
+                }
+                return result;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
